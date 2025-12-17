@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>猜拳大對決</title>
+    <style>
+      :root {
+        --primary: #6366f1;
+        --secondary: #ec4899;
+        --bg: #f8fafc;
+        --text: #1e293b;
+        --card-bg: #ffffff;
+      }
+
+      body {
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        align-items: center;
+      }
+
+      #root {
+        width: 100%;
+        max-width: 600px;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .game-container {
+        background: var(--card-bg);
+        border-radius: 24px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        padding: 32px;
+        text-align: center;
+        overflow: hidden;
+      }
+
+      h1 {
+        margin-top: 0;
+        color: var(--primary);
+        font-size: 2rem;
+        margin-bottom: 24px;
+      }
+
+      .scoreboard {
+        display: flex;
+        justify-content: space-around;
+        background: #f1f5f9;
+        padding: 16px;
+        border-radius: 16px;
+        margin-bottom: 32px;
+      }
+
+      .score-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .score-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .score-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text);
+      }
+
+      .battle-area {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        margin: 40px 0;
+        min-height: 150px;
+      }
+
+      .hand {
+        font-size: 5rem;
+        transition: transform 0.2s;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+      }
+
+      .hand.user {
+        transform: scaleX(-1) rotate(90deg);
+      }
+      
+      .hand.cpu {
+        transform: rotate(-90deg);
+      }
+
+      .vs-text {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #cbd5e1;
+      }
+
+      .result-area {
+        margin-bottom: 24px;
+        min-height: 80px;
+      }
+
+      .result-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      .commentary {
+        font-size: 1rem;
+        color: #64748b;
+        font-style: italic;
+        line-height: 1.5;
+        min-height: 24px;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .btn-choice {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px 10px;
+        font-size: 2rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-choice span {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #475569;
+      }
+
+      .btn-choice:hover:not(:disabled) {
+        border-color: var(--primary);
+        background: #f8fafc;
+        transform: translateY(-2px);
+      }
+
+      .btn-choice:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .btn-choice:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .reset-btn {
+        margin-top: 32px;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 0.9rem;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      /* Animation Classes */
+      .shake {
+        animation: shake 0.5s infinite;
+      }
+
+      @keyframes shake {
+        0% { transform: translateY(0px) rotate(90deg); }
+        25% { transform: translateY(-20px) rotate(90deg); }
+        50% { transform: translateY(0px) rotate(90deg); }
+        75% { transform: translateY(-20px) rotate(90deg); }
+        100% { transform: translateY(0px) rotate(90deg); }
+      }
+      
+      .shake.cpu {
+        animation: shakeCpu 0.5s infinite;
+      }
+
+      @keyframes shakeCpu {
+        0% { transform: translateY(0px) rotate(-90deg); }
+        25% { transform: translateY(-20px) rotate(-90deg); }
+        50% { transform: translateY(0px) rotate(-90deg); }
+        75% { transform: translateY(-20px) rotate(-90deg); }
+        100% { transform: translateY(0px) rotate(-90deg); }
+      }
+
+      .pop-in {
+        animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      @keyframes pop {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .win-text { color: #10b981; }
+      .lose-text { color: #ef4444; }
+      .draw-text { color: #f59e0b; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
