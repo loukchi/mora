@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Gemini - wrapped to be safe if env variable is missing during dev
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 type Choice = 'rock' | 'paper' | 'scissors' | null;
 type Result = 'win' | 'lose' | 'draw' | null;
@@ -29,7 +29,19 @@ const App = () => {
     return 'lose';
   };
 
+  const getFallbackCommentary = (res: Result) => {
+    if (res === 'win') return '太強了！你贏了這一局！🎉';
+    if (res === 'lose') return '可惜，電腦運氣比較好！🤖';
+    return '平手！真有默契！🤝';
+  };
+
   const getGeminiCommentary = async (user: string, cpu: string, res: Result) => {
+    // Check if API key is effectively present before calling
+    if (!process.env.API_KEY) {
+      setCommentary(getFallbackCommentary(res));
+      return;
+    }
+
     try {
       const prompt = `
         這是一個猜拳遊戲。
@@ -39,7 +51,7 @@ const App = () => {
         
         請用繁體中文，給出一句簡短、幽默或帶有輕微嘲諷的評論（20字以內）。
         如果是玩家贏，可以稱讚運氣或技巧；如果是玩家輸，可以調侃一下；平手則說真有默契。
-        語氣要活潑有趣。
+        語氣要活潑有趣，像綜藝節目旁白。
       `;
 
       const response = await ai.models.generateContent({
@@ -54,9 +66,7 @@ const App = () => {
     } catch (error) {
       console.error('Failed to get commentary', error);
       // Fallback commentary if API fails
-      if (res === 'win') setCommentary('運氣不錯喔！');
-      else if (res === 'lose') setCommentary('再接再厲！');
-      else setCommentary('不分軒輊！');
+      setCommentary(getFallbackCommentary(res));
     }
   };
 
